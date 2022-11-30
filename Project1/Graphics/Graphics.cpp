@@ -19,8 +19,11 @@ bool Graphics::Initialize(HWND hwnd, int width, int height)
 void Graphics::RenderFrame()
 {
 	float bgcolor[] = { 0.0f, 0.0f, 0.0f, 1.0f };
-	this->deviceContext->ClearRenderTargetView(
-		this->renderTargetView.Get(), bgcolor);
+	this->deviceContext->ClearRenderTargetView(this->renderTargetView.Get(),
+		bgcolor);
+
+	this->deviceContext->ClearDepthStencilView(this->depthStencilView.Get(),
+		D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
 
 	this->deviceContext->IASetInputLayout(this->vertexShader.GetInputLayout());
 
@@ -32,6 +35,8 @@ void Graphics::RenderFrame()
 
 	this->deviceContext->RSSetState(this->rasterizerState.Get());
 
+	this->deviceContext->OMSetDepthStencilState(this->depthStencilState.Get(), 0);
+
 	this->deviceContext->VSSetShader(vertexShader.GetShader(), NULL, 0);
 	this->deviceContext->PSSetShader(pixelShader.GetShader(), NULL, 0);
 
@@ -41,20 +46,14 @@ void Graphics::RenderFrame()
 	//don't draw just after u clean target view
 	//it can hurm ur machine
 
-	/////////////////////////////////////////////////////////////////////
-	//we draw triangle 1
-	//
-	this->deviceContext->IASetVertexBuffers(
-		0, 1, vertexBuffer.GetAddressOf(), &stride, &offset);
-	this->deviceContext->Draw(3, 0); //(how many points, start point)
-
-	/////////////////////////////////////////////////////////////////////
-	//we draw triangle 2
-	//
+	//we draw triangle 2 (mini green)
 	this->deviceContext->IASetVertexBuffers(
 		0, 1, vertexBuffer2.GetAddressOf(), &stride, &offset);
 	this->deviceContext->Draw(3, 0);
 
+	//we draw triangle 1 (norm red)
+	this->deviceContext->IASetVertexBuffers(
+		0, 1, vertexBuffer.GetAddressOf(), &stride, &offset);
 	this->deviceContext->Draw(3, 0); //(how many points, start point)
 
 	this->swapchain->Present(1, NULL);
@@ -166,10 +165,25 @@ bool Graphics::InitializeDirectX(HWND hwnd, int width, int height)
 		return false;
 	}
 
-
-
 	this->deviceContext->OMSetRenderTargets(1, //how many view
-		this->renderTargetView.GetAddressOf(), NULL);
+		this->renderTargetView.GetAddressOf(), this->depthStencilView.Get());
+
+	//create depth stencil state
+	D3D11_DEPTH_STENCIL_DESC depthstencildesc;
+	ZeroMemory(&depthstencildesc, sizeof(D3D11_DEPTH_STENCIL_DESC));
+
+	depthstencildesc.DepthEnable = true;
+	depthstencildesc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK::D3D11_DEPTH_WRITE_MASK_ALL;
+	depthstencildesc.DepthFunc = D3D11_COMPARISON_FUNC::D3D11_COMPARISON_LESS_EQUAL;
+
+	hr = this->device->CreateDepthStencilState(&depthstencildesc,
+		this->depthStencilState.GetAddressOf());
+
+	if (FAILED(hr))
+	{
+		ErrorLogger::Log(hr, "Failed to create depth stencil state.");
+		return false;
+	}
 
 	//create the viewport
 	D3D11_VIEWPORT viewport;
@@ -215,17 +229,19 @@ bool Graphics::InitializeDirectX(HWND hwnd, int width, int height)
 
 bool Graphics::InitializeShaders()
 {
-	//there should be some games with the path to the VertexShader, but the author deleted them...
+	//there should be some games with the path to the VertexShader
+	//but the author deleted them...
 	//so, next path is just for Debug x64 config only yeah
 	//mb u should return to vdeo 11, 11 min, where some macros are written
 	//but now just rest, honey ^^
 
 	D3D11_INPUT_ELEMENT_DESC layout[] =
 	{
-		{"POSITION", 0, DXGI_FORMAT::DXGI_FORMAT_R32G32_FLOAT, 0, 0, //size of the pre el
+		{"POSITION", 0, DXGI_FORMAT::DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, //size of the pre el
 		D3D11_INPUT_CLASSIFICATION::D3D11_INPUT_PER_VERTEX_DATA, 0},
 
-		{"COLOR", 0, DXGI_FORMAT::DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT,
+		{"COLOR", 0, DXGI_FORMAT::DXGI_FORMAT_R32G32B32_FLOAT, 0,
+		D3D11_APPEND_ALIGNED_ELEMENT,
 		D3D11_INPUT_CLASSIFICATION::D3D11_INPUT_PER_VERTEX_DATA, 0},
 	};
 
@@ -249,15 +265,15 @@ bool Graphics::InitializeShaders()
 bool Graphics::InitializeScene()
 {
 	///////////////////////////////////////////////////////////////////////////
-	//TRIANGLE 1 (norm)
+	//TRIANGLE 1 (norm=red)
 	//
 	//vertexes should go clockwise (in default opts)
 	//otherwise there'll be no picture
 	Vertex v[]
 	{
-		Vertex(-0.5f, -0.5f, 1.0f, 1.0f, 0.0f), //left yellow
-		Vertex(0.0f, 0.5f, 1.0f, 0.0f, 0.0f), //top red
-		Vertex(0.5f, -0.5f, 1.0f, 0.0f, 0.0f), //right red
+		Vertex(-0.5f, -0.5f, 1.0f, 1.0f, 1.0f, 0.0f), //left yellow
+		Vertex(0.0f, 0.5f, 1.0f, 1.0f, 0.0f, 0.0f), //top red
+		Vertex(0.5f, -0.5f, 1.0f, 1.0f, 0.0f, 0.0f), //right red
 	};
 
 	D3D11_BUFFER_DESC vertexBufferDesc;
@@ -283,13 +299,13 @@ bool Graphics::InitializeScene()
 	}
 
 	////////////////////////////////////////////////////////////////////////////
-	//TRIANGLE 2 (mini)
+	//TRIANGLE 2 (mini=green)
 	//
 	Vertex v2[]
 	{
-		Vertex(-0.25f, -0.25f, 0.0f, 1.0f, 0.0f), //left green
-		Vertex(0.0f, 0.25f, 1.0f, 0.0f, 1.0f), //top blue
-		Vertex(0.25f, -0.25f, 0.0f, 1.0f, 0.0f), //right green
+		Vertex(-0.25f, -0.25f, 0.0f, 0.0f, 1.0f, 0.0f), //left green
+		Vertex(0.0f, 0.25f, 0.0f, 1.0f, 0.0f, 1.0f), //top blue
+		Vertex(0.25f, -0.25f, 0.0f, 0.0f, 1.0f, 0.0f), //right green
 	};
 
 	ZeroMemory(&vertexBufferDesc, sizeof(vertexBufferDesc));
