@@ -3,6 +3,9 @@
 #include "Shaders.h"
 #include "Vertex.h"
 
+#include <SpriteBatch.h>
+#include <SpriteFont.h>
+
 
 class Graphics
 {
@@ -35,4 +38,7 @@ private:
 	Microsoft::WRL::ComPtr<ID3D11DepthStencilState> depthStencilState;
 
 	Microsoft::WRL::ComPtr<ID3D11RasterizerState> rasterizerState;
+
+	std::unique_ptr<DirectX::SpriteBatch> spriteBatch;
+	std::unique_ptr<DirectX::SpriteFont> spriteFont;
 };
