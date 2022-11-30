@@ -38,21 +38,23 @@ void Graphics::RenderFrame()
 	UINT stride = sizeof(Vertex);
 	UINT offset = 0;
 
+	//don't draw just after u clean target view
+	//it can hurm ur machine
+
 	/////////////////////////////////////////////////////////////////////
-	//for triangle 2
+	//we draw triangle 1
+	//
+	this->deviceContext->IASetVertexBuffers(
+		0, 1, vertexBuffer.GetAddressOf(), &stride, &offset);
+	this->deviceContext->Draw(3, 0); //(how many points, start point)
+
+	/////////////////////////////////////////////////////////////////////
+	//we draw triangle 2
 	//
 	this->deviceContext->IASetVertexBuffers(
 		0, 1, vertexBuffer2.GetAddressOf(), &stride, &offset);
 	this->deviceContext->Draw(3, 0);
 
-	/////////////////////////////////////////////////////////////////////
-	//for triangle 1
-	//
-	this->deviceContext->IASetVertexBuffers(
-		0, 1, vertexBuffer.GetAddressOf(), &stride, &offset);
-
-	//don't draw just after u clean target view
-	//it can hurn ur machine
 	this->deviceContext->Draw(3, 0); //(how many points, start point)
 
 	this->swapchain->Present(1, NULL);
@@ -216,7 +218,7 @@ bool Graphics::InitializeShaders()
 	//there should be some games with the path to the VertexShader, but the author deleted them...
 	//so, next path is just for Debug x64 config only yeah
 	//mb u should return to vdeo 11, 11 min, where some macros are written
-	//but now just rest sweety ^^
+	//but now just rest, honey ^^
 
 	D3D11_INPUT_ELEMENT_DESC layout[] =
 	{
@@ -247,13 +249,13 @@ bool Graphics::InitializeShaders()
 bool Graphics::InitializeScene()
 {
 	///////////////////////////////////////////////////////////////////////////
-	//TRIANGLE 1
+	//TRIANGLE 1 (norm)
 	//
 	//vertexes should go clockwise (in default opts)
 	//otherwise there'll be no picture
 	Vertex v[]
 	{
-		Vertex(-0.5f, -0.5f, 1.0f, 1.0f, 0.0f), //left red
+		Vertex(-0.5f, -0.5f, 1.0f, 1.0f, 0.0f), //left yellow
 		Vertex(0.0f, 0.5f, 1.0f, 0.0f, 0.0f), //top red
 		Vertex(0.5f, -0.5f, 1.0f, 0.0f, 0.0f), //right red
 	};
@@ -281,13 +283,13 @@ bool Graphics::InitializeScene()
 	}
 
 	////////////////////////////////////////////////////////////////////////////
-	//TRIANGLE 2
+	//TRIANGLE 2 (mini)
 	//
 	Vertex v2[]
 	{
 		Vertex(-0.25f, -0.25f, 0.0f, 1.0f, 0.0f), //left green
-		Vertex(0.0f, 0.25f, 0.0f, 1.0f, 0.0f), //top red green
-		Vertex(0.25f, -0.25f, 0.0f, 1.0f, 0.0f), //right red green
+		Vertex(0.0f, 0.25f, 1.0f, 0.0f, 1.0f), //top blue
+		Vertex(0.25f, -0.25f, 0.0f, 1.0f, 0.0f), //right green
 	};
 
 	ZeroMemory(&vertexBufferDesc, sizeof(vertexBufferDesc));
